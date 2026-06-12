@@ -89,6 +89,11 @@ CONFIG = {
     "MAX_TICK_VOL_PCT": 1.0,         # skip entries if 5-min return std > 1.0%
     "MAX_DRAWDOWN_PCT": 0.15,        # TOTAL-portfolio kill switch: liquidate + halt
 
+    # --- Tax estimate (informational only — this is paper money!) ---
+    # Day-trade gains are short-term capital gains, taxed as ordinary income.
+    # Set this to your marginal bracket to see strategy P/L after tax drag.
+    "TAX_RATE_PCT": 0.24,
+
     # --- Files ---
     "STATE_FILE": "state.json",
     "TRADES_FILE": "trades.csv",
@@ -200,6 +205,10 @@ def default_state() -> dict:
         "price_history": {},
         # [iso_timestamp, equity] per tick — feeds the dashboard's chart
         "equity_history": [],
+        # net realized gains/losses (after fees) from closed trades — the
+        # number short-term capital gains tax would be assessed on
+        "realized_pnl_total": 0.0,
+        "tax_rate": CONFIG["TAX_RATE_PCT"],
     }
 
 
@@ -390,7 +399,8 @@ def buy(state: dict, pair: str, sleeve: dict, symbol: str, price: float,
     amount = (spend - fee) / price
     sleeve["cash"] -= spend
     sleeve["holding"] = {"symbol": symbol, "amount": amount,
-                         "entry_price": price, "entry_z": z}
+                         "entry_price": price, "entry_z": z,
+                         "cost_basis": spend}
     log_trade(pair, "buy", symbol, price, amount, fee, sleeve["cash"], reason)
     print(f"  [TRADE] {pair}: BUY {amount:.6f} {symbol} @ ${price:,.4f} "
           f"(z={z:+.2f}, fee ${fee:.2f}) — {reason}")
@@ -402,6 +412,9 @@ def sell(state: dict, pair: str, sleeve: dict, price: float, reason: str) -> Non
     proceeds = h["amount"] * price
     fee = proceeds * CONFIG["FEE_PCT"]
     sleeve["cash"] += proceeds - fee
+    # Realized gain/loss after all fees: what tax would be assessed on.
+    cost = h.get("cost_basis", h["amount"] * h["entry_price"])
+    state["realized_pnl_total"] += (proceeds - fee) - cost
     pnl = (price - h["entry_price"]) / h["entry_price"] * 100
     log_trade(pair, "sell", h["symbol"], price, h["amount"], fee,
               sleeve["cash"], reason)
@@ -547,9 +560,13 @@ def run_tick(state: dict, prices: dict) -> None:
     if len(state["equity_history"]) > 2880:  # ~10 days of 5-min ticks
         del state["equity_history"][:-2880]
 
+    state["tax_rate"] = CONFIG["TAX_RATE_PCT"]  # keep dashboard in sync
+    realized = state["realized_pnl_total"]
+    est_tax = max(0.0, realized) * CONFIG["TAX_RATE_PCT"]
     pnl = (equity - state["starting_equity"]) / state["starting_equity"] * 100
     print(f"[{ts}] equity ${equity:,.2f} | total P/L {pnl:+.2f}% | "
-          f"drawdown {drawdown:.1%} | free cash ${state['free_cash']:,.2f}")
+          f"drawdown {drawdown:.1%} | free cash ${state['free_cash']:,.2f} | "
+          f"realized ${realized:+,.2f} (est. tax ${est_tax:,.2f})")
     for line in lines:
         print(f"    {line}")
     if not lines:

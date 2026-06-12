@@ -77,12 +77,20 @@ def build_payload() -> dict:
             "in_position": h is not None,
         })
 
+    realized = state.get("realized_pnl_total", 0.0)
+    tax_rate = state.get("tax_rate", 0.24)
+    est_tax = max(0.0, realized) * tax_rate
+
     return {
         "ready": True,
         "halted": state.get("halted", False),
         "equity": equity,
         "starting": starting,
         "pnl_pct": (equity - starting) / starting * 100,
+        "realized": realized,
+        "est_tax": est_tax,
+        "tax_rate": tax_rate,
+        "after_tax_pnl_pct": (equity - est_tax - starting) / starting * 100,
         "peak": peak,
         "drawdown_pct": (peak - equity) / peak * 100 if peak else 0.0,
         "kill_level": peak * 0.85,
@@ -236,7 +244,13 @@ function render(d) {
     <div class="stat"><div class="label">FREE CASH</div>
       <div class="value">${usd(d.free_cash)}</div></div>
     <div class="stat"><div class="label">PAIRS PICKED</div>
-      <div class="value">${d.last_selection || "—"}</div></div>`;
+      <div class="value">${d.last_selection || "—"}</div></div>
+    <div class="stat"><div class="label">REALIZED P/L (CLOSED TRADES)</div>
+      <div class="value ${d.realized >= 0 ? "good" : "bad"}">${d.realized >= 0 ? "+" : "-"}${usd(Math.abs(d.realized))}</div></div>
+    <div class="stat"><div class="label">EST. TAX @ ${(d.tax_rate*100).toFixed(0)}% (SHORT-TERM)</div>
+      <div class="value warn">${usd(d.est_tax)}</div></div>
+    <div class="stat"><div class="label">P/L AFTER TAX</div>
+      <div class="value ${d.after_tax_pnl_pct >= 0 ? "good" : "bad"}">${d.after_tax_pnl_pct >= 0 ? "+" : ""}${d.after_tax_pnl_pct.toFixed(2)}%</div></div>`;
 
   drawChart(d);
 
