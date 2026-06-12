@@ -71,8 +71,9 @@ CONFIG = {
     "MAX_TRADEABLE_PAIRS": 3,        # keep only the top N cointegrated pairs
     "MIN_CORRELATION": 0.6,          # pairs below this return-correlation are skipped
     "MAX_COINT_PVALUE": 0.10,        # pairs above this p-value never qualify
-    "HISTORY_REQUEST_GAP_SEC": 3.0,  # pause between the 10 daily history calls
-                                     # (respects CoinGecko's free rate limit)
+    "HISTORY_REQUEST_GAP_SEC": 15.0, # pause between the 10 daily history calls
+                                     # (CoinGecko's free tier is strict; the
+                                     # once-a-day fetch takes ~3 min, that's ok)
 
     # --- Spread z-score strategy ---
     "ENTRY_Z": 2.0,                  # open when |z| exceeds this
@@ -163,9 +164,19 @@ def fetch_history(coin_id: str) -> list | None:
             )
             return [float(p[1]) for p in data["prices"]]
         except (requests.RequestException, KeyError, ValueError) as exc:
-            wait = CONFIG["RETRY_BACKOFF_SEC"] * (2 ** attempt)
-            print(f"  [warn] history fetch for {coin_id} failed: {exc}; "
-                  f"retry in {wait}s")
+            resp = getattr(exc, "response", None)
+            if resp is not None and resp.status_code == 429:
+                # Rate-limited: honor the API's cool-down (default 60s).
+                try:
+                    wait = int(resp.headers.get("Retry-After") or 60)
+                except ValueError:
+                    wait = 60
+                print(f"  [warn] rate-limited fetching {coin_id} history; "
+                      f"cooling down {wait}s (this is normal on the free API)")
+            else:
+                wait = CONFIG["RETRY_BACKOFF_SEC"] * (2 ** attempt)
+                print(f"  [warn] history fetch for {coin_id} failed: {exc}; "
+                      f"retry in {wait}s")
             time.sleep(wait)
     return None
 
