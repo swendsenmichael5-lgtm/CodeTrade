@@ -4,3 +4,7 @@ trades.csv
 
 __pycache__/
 *.pyc
+pairs.csv
+test_state.json
+test_trades.csv
+test_pairs.csv
