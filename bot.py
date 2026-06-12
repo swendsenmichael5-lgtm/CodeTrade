@@ -569,7 +569,9 @@ def selection_due(state: dict) -> bool:
 def fetch_all_histories() -> dict | None:
     """Fetch hourly history for every universe coin, throttled."""
     histories = {}
-    for sym, cid in CONFIG["UNIVERSE"].items():
+    total = len(CONFIG["UNIVERSE"])
+    for i, (sym, cid) in enumerate(CONFIG["UNIVERSE"].items(), start=1):
+        print(f"  [select] downloading history {i}/{total}: {sym}...", flush=True)
         series = fetch_history(cid)
         if series is None:
             print(f"  [warn] giving up on history for {sym}")
