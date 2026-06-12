@@ -100,6 +100,21 @@ writes, so it can't affect trading, and you can start/stop it anytime.
 Uses only the Python standard library (no extra installs). It binds to
 localhost only, so nothing is exposed to the network.
 
+## Backtest (test ideas in seconds, not weeks)
+
+```bash
+python3 backtest.py        # replay the last 60 days
+python3 backtest.py 30     # or any 8-90 day window
+```
+
+Downloads hourly history once (cached in `backtest_data.json`; delete it to
+refresh), then replays it through the live bot's exact selection/signal/risk
+code, walk-forward (each simulated day re-selects pairs using only data
+available up to that moment). Prints a scorecard: P/L, after-tax P/L, max
+drawdown, trade count, fees paid, exit-reason breakdown, and the
+buy-and-hold-BTC benchmark. To experiment, change `CONFIG` in `bot.py` and
+re-run — results are comparable because the data is cached.
+
 ## Verify offline (no network needed)
 
 ```bash
@@ -133,6 +148,7 @@ Everything lives in the `CONFIG` dict at the top of `bot.py`:
 |---|---|
 | `bot.py` | The bot — feed, selection, strategy, sleeves, risk, main loop |
 | `dashboard.py` | Retro pixel web dashboard (run alongside the bot) |
+| `backtest.py` | Replay historical data through the bot's logic |
 | `test_simulation.py` | Offline synthetic-data verification |
 | `state.json` | Saved sleeves/positions/equity high-water mark (auto-created) |
 | `trades.csv` | Append-only trade log (auto-created) |

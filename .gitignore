@@ -8,3 +8,7 @@ pairs.csv
 test_state.json
 test_trades.csv
 test_pairs.csv
+backtest_data.json
+backtest_trades.csv
+backtest_pairs.csv
+backtest_state.json
