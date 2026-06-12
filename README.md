@@ -65,6 +65,31 @@ ticks every 5 minutes:
     XRP/ADA    z=+2.50 | LONG 7112.09 ADA (entry $0.4448, z@entry +2.50) | sleeve $3,330.17
 ```
 
+## Pixel dashboard (watch it trade)
+
+In a **second terminal**, in the same folder where the bot is running:
+
+```bash
+python3 dashboard.py
+```
+
+Then open **http://localhost:8000** in your browser. You get a retro 8-bit
+CRT-style dashboard (green phosphor, scanlines, chunky pixel chart) that
+auto-refreshes every 5 seconds:
+
+- big stat readouts: equity, total P/L %, drawdown vs. the 15% kill level,
+  free cash, and the date pairs were last picked
+- a pixelated equity chart for the last 24h, with dashed reference lines
+  for your starting balance (amber) and the kill-switch level (red)
+- one row per sleeve: pair, live z-score, position, sleeve value
+- the recent trade log
+- a big blinking red banner if the kill switch ever fires
+
+It's read-only — it just renders the same `state.json`/`trades.csv` the bot
+writes, so it can't affect trading, and you can start/stop it anytime.
+Uses only the Python standard library (no extra installs). It binds to
+localhost only, so nothing is exposed to the network.
+
 ## Verify offline (no network needed)
 
 ```bash
@@ -97,6 +122,7 @@ Everything lives in the `CONFIG` dict at the top of `bot.py`:
 | File | Purpose |
 |---|---|
 | `bot.py` | The bot — feed, selection, strategy, sleeves, risk, main loop |
+| `dashboard.py` | Retro pixel web dashboard (run alongside the bot) |
 | `test_simulation.py` | Offline synthetic-data verification |
 | `state.json` | Saved sleeves/positions/equity high-water mark (auto-created) |
 | `trades.csv` | Append-only trade log (auto-created) |

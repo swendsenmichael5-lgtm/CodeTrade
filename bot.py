@@ -187,6 +187,8 @@ def default_state() -> dict:
         "sleeves": {},
         # short rolling price history per symbol, used by the volatility filter
         "price_history": {},
+        # [iso_timestamp, equity] per tick — feeds the dashboard's chart
+        "equity_history": [],
     }
 
 
@@ -481,6 +483,8 @@ def run_sleeve(state: dict, pair: str, sleeve: dict, prices: dict) -> str:
             buy(state, pair, sleeve, cheap, prices[cheap], z,
                 f"spread entry (z={z:+.2f})")
 
+    sleeve["last_z"] = z  # saved to state so the dashboard can display it
+
     h = sleeve["holding"]
     if h:
         pos = (f"LONG {h['amount']:.6f} {h['symbol']} "
@@ -515,6 +519,8 @@ def run_tick(state: dict, prices: dict) -> None:
 
     if state["halted"]:
         equity = portfolio_equity(state, prices)
+        state["equity_history"].append(
+            [datetime.now(timezone.utc).isoformat(), equity])
         print(f"[{ts}] HALTED by kill switch | equity ${equity:,.2f} | "
               f"reset by deleting {CONFIG['STATE_FILE']} "
               f"or setting \"halted\": false")
@@ -525,6 +531,11 @@ def run_tick(state: dict, prices: dict) -> None:
              for pair, sleeve in state["sleeves"].items()]
 
     equity = portfolio_equity(state, prices)
+    state["equity_history"].append(
+        [datetime.now(timezone.utc).isoformat(), equity])
+    if len(state["equity_history"]) > 2880:  # ~10 days of 5-min ticks
+        del state["equity_history"][:-2880]
+
     pnl = (equity - state["starting_equity"]) / state["starting_equity"] * 100
     print(f"[{ts}] equity ${equity:,.2f} | total P/L {pnl:+.2f}% | "
           f"drawdown {drawdown:.1%} | free cash ${state['free_cash']:,.2f}")
