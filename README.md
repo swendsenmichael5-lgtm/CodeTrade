@@ -45,7 +45,17 @@ Requires Python 3.10+.
 pip install -r requirements.txt
 ```
 
-## Run
+## Run (easy way — one command)
+
+```bash
+python3 start.py
+```
+
+This starts the trading bot **and** the pixel dashboard together and opens
+http://localhost:8000 in your browser. Press `Ctrl+C` once to stop both
+(state is saved; restarting resumes your balance and positions).
+
+## Run (manual way — separate pieces)
 
 ```bash
 python3 bot.py
