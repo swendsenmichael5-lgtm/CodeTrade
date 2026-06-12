@@ -1,0 +1,6 @@
+# Runtime artifacts — each user generates their own
+state.json
+trades.csv
+
+__pycache__/
+*.pyc
